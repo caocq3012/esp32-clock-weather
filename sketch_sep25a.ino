@@ -15,12 +15,12 @@
 #include "miniz.h"
 
 //==================== 用户配置区 =====================
-const char* QWEATHER_API_KEY = "dd86273986a84d81af30e0bc6096defa";
-const char* QWEATHER_API_HOST = "ke7fc4nn45.re.qweatherapi.com";
+const char* QWEATHER_API_KEY = "填入和风apikey";
+const char* QWEATHER_API_HOST = "填入和风apihost";
 
 // ★ 接口盒子（https://www.apihz.cn/）注册后填这里
-const char* LUNAR_API_ID  = "10021574";
-const char* LUNAR_API_KEY = "814ad6b36c32c6905cc7b2818fc829a9";
+const char* LUNAR_API_ID  = "填入接口盒子id";
+const char* LUNAR_API_KEY = "填入接口盒子apikey";
 
 //===================== 硬件配置 =====================
 #define SCREEN_WIDTH 128
