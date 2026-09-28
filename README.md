@@ -33,6 +33,8 @@ ESP32 128×64 OLED I2C 智能桌面天气时钟。支持中文显示、农历、
 | 按键 ×4 | 轻触开关 |
 | 蜂鸣器 | 有源或无源，接 GPIO 23 |
 
+tips：蜂鸣器接上去一直响不知道为什么有没有大神帮看看，不知道的话最好先别接
+
 ### 引脚定义
 
 | 外设 | GPIO |
@@ -139,6 +141,19 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 ---
 
+
+## 📂 版本说明
+
+本项目有三个分支：
+
+- **`main`**（当前）：两个版本都有
+- **`表盘版`**
+- **`无表盘版`**
+
+切换分支：
+
+在 GitHub 页面左上角的分支下拉框切换。
+
 ## ⚠️ 注意事项
 
 - **天气功能仅支持中国境内使用**（依赖 ip9.com.cn 定位 + 和风天气国内接口）
@@ -161,8 +176,17 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 ## 📄 License
 
-MIT License
+本项目采用 [MIT License](LICENSE) 开源协议，Copyright (c) 2026 gaocq。
 
+
+### 第三方组件
+
+本项目使用了以下第三方开源组件，各自遵循其原始协议：
+
+- **[miniz](https://github.com/richgel999/miniz)** —— MIT License
+  Copyright 2013-2014 RAD Game Tools and Valve Software
+  Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+  
 ---
 
 ## ⭐ 如果你觉得这个项目有用，欢迎点个 Star
