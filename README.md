@@ -170,19 +170,4 @@ MIT License
 
 ---
 
-## 使用方法
 
-1. **复制上面全部内容**
-2. **GitHub 仓库 → `README.md` → 点铅笔图标（编辑）**
-3. **全选删除，粘贴新内容**
-4. **Commit changes**
-
-**或者本地改：**
-
-```bash
-cd /Users/Administrator/Documents/Arduino/sketch_sep25a
-# 把 README.md 替换成上面内容
-git add README.md
-git commit -m "docs: 完善 README"
-git push
-```
