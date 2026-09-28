@@ -176,7 +176,8 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 ## 📄 License
 
-MIT License
+本项目采用 [MIT License](LICENSE) 开源协议，Copyright (c) 2026 gaocq。
+
 
 ### 第三方组件
 
