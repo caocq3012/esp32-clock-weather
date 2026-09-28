@@ -46,6 +46,6 @@ const char* QWEATHER_API_KEY = "填写自己的和风apikey";
 const char* QWEATHER_API_HOST = "填写自己的和风apihost";
 ```
 ## ⚠️ 注意事项
-**该项目目前仅支持中国境内使用，谢谢谅解**
+**该项目天气功能目前仅支持中国境内使用，谢谢谅解**
 
-**This project currently only supports usage within mainland China. Thank you for your understanding**
+**The weather feature of this project currently only supports use within mainland China. Thank you for your understanding.**
