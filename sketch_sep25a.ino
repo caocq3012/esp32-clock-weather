@@ -15,12 +15,12 @@
 #include "miniz.h"
 
 //==================== 用户配置区 =====================
-const char* QWEATHER_API_KEY = "填入和风apikey";
-const char* QWEATHER_API_HOST = "填入和风apihost";
+const char* QWEATHER_API_KEY = "填写和风api-key";
+const char* QWEATHER_API_HOST = "填写和风api-host";
 
 // ★ 接口盒子（https://www.apihz.cn/）注册后填这里
-const char* LUNAR_API_ID  = "填入接口盒子id";
-const char* LUNAR_API_KEY = "填入接口盒子apikey";
+const char* LUNAR_API_ID  = "填写接口盒子开发者ID（在个人资料里）";
+const char* LUNAR_API_KEY = "填写接口盒子开发者API-key（在个人资料里）";
 
 //===================== 硬件配置 =====================
 #define SCREEN_WIDTH 128
@@ -370,10 +370,8 @@ String getLunarFromAPI(int y, int m, int d) {
 
   String nyue = doc["nyue"].as<String>();
   String nri  = doc["nri"].as<String>();
-  String jieqi = doc["jieqi"].as<String>();
 
   String result = nyue + nri;
-  if (jieqi.length() > 0) result += " " + jieqi;
   Serial.println("农历 API 返回: " + result);
   return result;
 }
@@ -613,7 +611,7 @@ void drawClockPage() {
 
   const char *weekStr[] = {"星期日","星期一","星期二","星期三","星期四","星期五","星期六"};
   String weekStrStr = weekStr[tmBuf.tm_wday];
-  String solarStr = String(mon) + "月" + String(mday) + "日";
+  String solarStr = String(mon) + "/" + String(mday);
 
   drawWifiIcon(WiFi.RSSI());
   drawClockFace(hourNow, minNow, secNow);
@@ -976,3 +974,6 @@ void loop() {
     }
   } else if (!screenOn) display.ssd1306_command(SSD1306_DISPLAYOFF);
 }
+
+
+
