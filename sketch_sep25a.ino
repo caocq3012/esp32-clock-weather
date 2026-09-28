@@ -15,12 +15,12 @@
 #include "miniz.h"
 
 //==================== 用户配置区 =====================
-const char* QWEATHER_API_KEY = "填写和风api-key";
-const char* QWEATHER_API_HOST = "填写和风api-host";
+const char* QWEATHER_API_KEY = "填入和风API key";
+const char* QWEATHER_API_HOST = "填入和风API host";
 
 // ★ 接口盒子（https://www.apihz.cn/）注册后填这里
-const char* LUNAR_API_ID  = "填写接口盒子开发者ID（在个人资料里）";
-const char* LUNAR_API_KEY = "填写接口盒子开发者API-key（在个人资料里）";
+const char* LUNAR_API_ID  = "填入接口盒子开发者ID";
+const char* LUNAR_API_KEY = "填入接口盒子API key";
 
 //===================== 硬件配置 =====================
 #define SCREEN_WIDTH 128
@@ -179,7 +179,7 @@ void drawWifiIcon(int rssi) {
   }
 }
 void drawClockFace(int h, int m, int s) {
-  int cx = 64, cy = 22, r = 16;
+  int cx = 64, cy = 22, r = 12;
   display.drawCircle(cx, cy, r, WHITE);
   for (int i = 0; i < 12; i++) {
     float ang = PI * 2 / 12 * i - PI / 2;
@@ -618,12 +618,15 @@ void drawClockPage() {
 
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(32, 42);
+  display.setCursor(16, 36);        // ← 32 改成 16（居中）
   if (hourNow < 10) display.print("0");
   display.print(hourNow);
   display.print(":");
   if (minNow < 10) display.print("0");
   display.print(minNow);
+  display.print(":");
+  if (secNow < 10) display.print("0");
+  display.print(secNow);
 
   String dateLine = solarStr + " " + lunarStr + " " + weekStrStr;
   if (offlineMode) dateLine += " 离线";
