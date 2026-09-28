@@ -49,3 +49,10 @@ const char* QWEATHER_API_HOST = "填写自己的和风apihost";
 **该项目天气功能目前仅支持中国境内使用，谢谢谅解**
 
 **The weather feature of this project currently only supports use within mainland China. Thank you for your understanding.**
+
+## 🙏 致谢
+
+- 农历/节气算法：参考自网络公开的 1900-2100 年农历压缩表
+- gzip 解压：[miniz](https://github.com/richgel999/miniz)（richgel999）
+- 中文字体渲染：[U8g2_for_Adafruit_GFX](https://github.com/olikraus/U8g2_for_Adafruit_GFX)（olikraus）
+- 天气数据：[和风天气](https://www.qweather.com/)
