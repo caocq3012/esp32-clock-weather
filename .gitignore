@@ -1,0 +1,9 @@
+# 含真实密钥的本地文件，禁止提交
+sketch_sep25a.ino
+sketch_sep25a_backup*.ino
+
+# macOS / Arduino 编译产物
+.DS_Store
+build/
+*.bin
+*.elf
