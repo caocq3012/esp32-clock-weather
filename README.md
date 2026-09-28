@@ -178,6 +178,14 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 MIT License
 
+### 第三方组件
+
+本项目使用了以下第三方开源组件，各自遵循其原始协议：
+
+- **[miniz](https://github.com/richgel999/miniz)** —— MIT License
+  Copyright 2013-2014 RAD Game Tools and Valve Software
+  Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+  
 ---
 
 ## ⭐ 如果你觉得这个项目有用，欢迎点个 Star
