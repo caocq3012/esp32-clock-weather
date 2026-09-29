@@ -145,13 +145,16 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 本项目有三个分支：
 
-- **`main`**（当前）：两个版本都有
+- **`main`**：两个版本都有
 - **`表盘版`**
 - **`无表盘版`**
+- **`JWT无表盘版`**
 
 切换分支：
 
 在 GitHub 页面左上角的分支下拉框切换。
+
+特别说明：无表盘版使用的是APIkey访问和风天气，JWT无表盘版使用JSON WEB动态token访问，安全性提升但是配置较复杂，可以自行选择。JWT无表盘版使用方法详见JWT无表盘版分支下的README。
 
 ## ⚠️ 注意事项
 
@@ -179,7 +182,7 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 ### 第三方组件
 
-本项目使用了以下第三方开源组件，各自遵循其原始协议：
+本项目（JWT无表盘版除外）使用了以下第三方开源组件，各自遵循其原始协议：
 
 - **[miniz](https://github.com/richgel999/miniz)** —— MIT License
   Copyright 2013-2014 RAD Game Tools and Valve Software
