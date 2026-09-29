@@ -1,192 +1,333 @@
-# ESP32-OLED-Weather-Clock
+# esp32_clock_and_weather JWT无表盘版特殊说明
 
-ESP32 128×64 OLED I2C 智能桌面天气时钟。支持中文显示、农历、节气、和风天气 V1 接口自动拉取当前天气 + 7 天预报、按键配网、离线缓存、夜间熄屏节能、整点蜂鸣报时。
+基于 ESP32 的桌面智能时钟，支持 OLED 显示、实时天气、7 天预报、农历、NTP 校时、WiFi 配网、整点报时等功能。
 
----
+## 功能特性
 
-## 📌 项目简介
+- ⏰ **时钟显示**：大字体时间 + 日期 + 星期 + 农历
+- 🌤 **实时天气**：自动 IP 定位，显示城市、天气、温度、湿度
+- 📅 **7 天预报**：和风天气 daily 接口，图标 + 日期
+- 🌙 **农历显示**：通过 apihz.cn API 获取农历日期
+- 📡 **NTP 校时**：每 5 分钟自动同步
+- 🔌 **WiFi 配网**：支持扫描 / 手动输入 SSID 和密码
+- 🔔 **整点报时**：蜂鸣器整点响铃（可开关）
+- 🌙 **夜间息屏**：21:00~07:00 自动熄屏省电
+- 💾 **离线缓存**：天气数据本地缓存，断网时仍可显示
+- 🔐**安全性高**：使用JWT认证，比APIkey安全性强
 
-基于 ESP32 开发板的 OLED 桌面时钟，适配 SSD1306 128×64 I2C OLED 屏幕。
+## 硬件需求
 
-主要功能：
+| 组件   | 型号 / 参数                           |
+| ------ | ------------------------------------- |
+| 主控   | ESP32（ESP32-DevKitC 或兼容板）       |
+| 显示屏 | SSD1306 OLED 128×64（I2C，地址 0x3C） |
+| 蜂鸣器 | 无源/有源蜂鸣器                       |
+| 按键   | 4 个轻触按键（上/下/左/右）           |
 
-- **自动 NTP 网络校时**：支持开机立即同步 + 定时刷新，离线可继续运行
-- **农历 + 节气**：通过接口盒子（apihz.cn）在线获取农历月日、节气信息
-- **IP 自动定位**：通过 ip9.com.cn 获取经纬度和城市名
-- **和风天气 V1 接口**：当前天气 + 7 天预报，含 gzip 手动解压（miniz）
-- **WiFi 配网**：扫描列表可视化选网，密码字符输入，XOR 加密存储到 Preferences
-- **四按键交互**：页面切换、菜单选择、WiFi 密码输入、长按确认
-- **整点蜂鸣报时**：支持开关
-- **夜间自动熄屏**：21:00~07:00 熄屏，按下down键亮屏10秒，白天常亮
-- **离线缓存**：断网时读取历史天气缓存
-- **手绘天气图标**：晴天/多云/雨/雷/雪/雾/霾/沙尘等
-- **串口心跳日志**：方便调试
+### 引脚连接
 
----
+| 功能       | GPIO |
+| ---------- | ---- |
+| OLED SDA   | 19   |
+| OLED SCL   | 18   |
+| 蜂鸣器     | 23   |
+| 按键 UP    | 27   |
+| 按键 DOWN  | 26   |
+| 按键 LEFT  | 25   |
+| 按键 RIGHT | 33   |
 
-## 🧰 硬件清单
+## 依赖库
 
-| 硬件    | 型号/参数                                                                                                                    |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 主控    | ESP32 开发板（任意型号，Flash ≥ 4MB）                                                                                        |
-| 屏幕    | SSD1306，128×64，I2C，地址 `0x3C`（淘宝链接：https://item.taobao.com/item.htm?id=767205498137    ，规格选4针IIC OLED液晶屏） |
-| 按键 ×4 | 轻触开关                                                                                                                     |
-| 蜂鸣器  | 有源或无源，接 GPIO 23                                                                                                       |
+在 Arduino IDE 的库管理器中安装：
 
-tips：蜂鸣器接上去一直响不知道为什么有没有大神帮看看，不知道的话最好先别接
+- `Adafruit GFX Library`
+- `Adafruit SSD1306`
+- `ArduinoJson`（7.x）
+- `NTPClient`
+- `U8g2_for_Adafruit_GFX`
+- `WiFi`（ESP32 自带）
+- `HTTPClient`（ESP32 自带）
+- `WiFiClientSecure`（ESP32 自带）
+- `Preferences`（ESP32 自带）
 
-### 引脚定义
+**本地文件**（与源代码同级，可以直接打包下载）：
 
-| 外设             | GPIO    |
-| ---------------- | ------- |
-| OLED SDA         | GPIO 19 |
-| OLED SCL         | GPIO 18 |
-| 蜂鸣器 BEEP      | GPIO 23 |
-| KEY_UP 上按键    | GPIO 27 |
-| KEY_DOWN 下按键  | GPIO 26 |
-| KEY_LEFT 左按键  | GPIO 25 |
-| KEY_RIGHT 右按键 | GPIO 33 |
+- `miniz.h` / `miniz.c` — 用于 gzip 解压
+- `edsign.h` / `edsign.c` 等 — Ed25519 签名
 
-> ⚠️ OLED 供电推荐 3.3V，不要接 5V，避免烧屏幕。I2C 地址默认 `0x3C`，如果黑屏可尝试改成 `0x3D`。
+## API 申请
 
----
+### 和风天气 API
 
-## 📦 依赖库
+1. 注册 [和风天气控制台](https://console.qweather.com/)
+2. 创建项目，获取：
+   - `QWEATHER_USER_ID`（开发者 ID）
+   - `QWEATHER_API_HOST`（API Host，形如 `xxx.re.qweatherapi.com`）
+   - 在右上角头像--设置中获取
 
-**Arduino IDE → 库管理器安装以下库：**
+### 生成 Ed25519 密钥对
 
-| 库名                    | 作者             | 用途                         |
-| ----------------------- | ---------------- | ---------------------------- |
-| `Adafruit GFX Library`  | Adafruit         | 图形绘制基础库               |
-| `Adafruit SSD1306`      | Adafruit         | OLED 屏幕驱动                |
-| `U8g2_for_Adafruit_GFX` | olikraus         | OLED 中文字体（GB2312）      |
-| `NTPClient`             | Fabrice Weinberg | NTP 时间同步                 |
-| `ArduinoJson`           | Benoit Blanchon  | JSON 解析（**需 6.x 版本**） |
+和风天气使用 Ed25519 算法进行 JWT 签名，需要生成密钥对。
 
-**项目文件自带：**
+**方法一：使用 OpenSSL（推荐）**
 
-- `miniz.c` / `miniz.h` —— gzip 解压（手动实现 tinfl 解压）
-
-**放入项目目录（与 `.ino` 同级）：**
-
-```
-esp32_clock_and_weather/
-├── sketch_sep25a.ino
-├── miniz.c
-└── miniz.h
-```
-
----
-
-## ⚙️ 编译配置
-
-Arduino IDE → **工具 → Partition Scheme** → 选：
-
-```
-Huge APP (3MB No OTA/1MB SPIFFS)
+```bash
+openssl genpkey -algorithm ED25519 -out ed25519-private.pem && openssl pkey -pubout -in ed25519-private.pem > ed25519-public.pem
 ```
 
-**否则会编译失败**（中文 + SSL + miniz 超过了默认 1.3MB app 分区）。
+生成两个文件：
 
----
+- `ed25519-private.pem` — 私钥（自行保管，不要泄露）
+- `ed25519-public.pem` — 公钥（上传到和风控制台）
 
-## 🔑 用户配置
+**方法二：使用和风天气官方 JWT 工具**
 
-打开 `.ino` 文件，找到「用户配置区」，填入你自己的账号信息：
+访问 [https://jwt.qweather.com](https://jwt.qweather.com)，页面会自动生成密钥对，可直接复制私钥和公钥。
 
-```cpp
-// 和风天气（https://console.qweather.com/）
-const char* QWEATHER_API_KEY  = "填写和风api-key";
-const char* QWEATHER_API_HOST = "填写和风api-host";
+**方法三：使用和风天气官方示例代码**
 
-// 接口盒子（https://www.apihz.cn/）
-const char* LUNAR_API_ID  = "填写接口盒子开发者ID";
-const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
+和风官方文档提供了 Java、Python、Node.js 等语言的 JWT 生成示例代码，可参考对应语言的密码学库生成 Ed25519 密钥对。
+
+### 上传公钥并获取凭据
+
+1. 登录和风天气控制台，进入 **项目管理**
+2. 选择项目（如果没有新建一个），点击 **"添加凭据"**
+3. 凭据名称任意填写
+4. 身份认证方式选择 **"JSON Web Token"**
+5. 复制 `ed25519-public.pem` 的全部内容（含 `-----BEGIN PUBLIC KEY-----` 和 `-----END PUBLIC KEY-----`），粘贴到公钥输入框
+6. 保存后记录 **凭据 ID** 和 **项目 ID**之后**有用**
+
+### 将私钥转换为十六进制数组
+
+#### 方法一：Python 脚本（推荐）
+
+**前提**：安装 `cryptography` 库
+
+```bash
+pip install cryptography
 ```
 
-### 和风天气配置
+**脚本**：
 
-1. 注册 https://console.qweather.com/
-2. 「项目管理」→ 创建项目
-3. 「凭据」→ 生成 API Key
-4. 「设置」→ 查看 API Host
+```python
+from cryptography.hazmat.primitives import serialization
 
-### 接口盒子配置
+with open("ed25519-private.pem", "rb") as f:
+    key = serialization.load_pem_private_key(f.read(), password=None)
 
-1. 注册 https://www.apihz.cn/
-2. 个人中心里能看到 **开发者 ID** 和 **API Key**
-3. 填入代码
+raw = key.private_bytes(
+    encoding=serialization.Encoding.Raw,
+    format=serialization.PrivateFormat.Raw,
+    encryption_algorithm=serialization.NoEncryption()
+)
 
----
+print("static const uint8_t ED25519_PRIVATE_KEY[32] = {")
+for i in range(0, 32, 8):
+    line = ", ".join(f"0x{b:02x}" for b in raw[i:i+8])
+    comma = "," if i + 8 < 32 else ""
+    print(f"  {line}{comma}")
+print("};")
+```
 
-## 🎮 按键操作
+**用法**：
 
-| 按键          | 时钟/天气页   | 菜单页   | WiFi 扫描 | 密码输入     |
-| ------------- | ------------- | -------- | --------- | ------------ |
-| **左**        | 切时钟页      | 返回     | 返回菜单  | 退格         |
-| **右**        | 切天气页      | 进入选项 | 选中 SSID | 添加字符     |
-| **上**        | 进菜单        | 选项上移 | 列表上移  | 字符 +1      |
-| **下**        | —             | 选项下移 | 列表下移  | 字符 -1      |
-| **长按左/右** | 开/关整点报时 | —        | —         | 长按确认连接 |
+```bash
+python convert.py
+```
 
----
+**输出示例**：
 
-## 🔄 数据更新频率
+```
+static const uint8_t ED25519_PRIVATE_KEY[32] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+```
 
-| 数据                | 频率                     |
-| ------------------- | ------------------------ |
-| NTP 时间            | 开机同步一次 + 每 5 分钟 |
-| 天气（当前 + 7 天） | 开机拉一次 + 每 10 分钟  |
-| 农历 + 节气         | 每天一次（跨天刷新）     |
-
----
-
-## 📂 版本说明
-
-本项目有三个分支：
-
-- **`main`**（当前）：两个版本都有
-- **`表盘版`**
-- **`无表盘版`**
-
-切换分支：
-
-在 GitHub 页面左上角的分支下拉框切换。
-
-## ⚠️ 注意事项
-
-- **天气功能仅支持中国境内使用**（依赖 ip9.com.cn 定位 + 和风天气国内接口）
-- **农历功能依赖接口盒子 API**，请求频率低（每天一次），免费额度足够
-- **API Key 请勿公开**，否则会被别人用你的额度
-- **不要将 WiFi 密码、API Key 明文 push 到 GitHub**
+**直接复制粘贴到代码里。**
 
 ---
 
-## 🙏 致谢
+## 方法二：OpenSSL 一行命令
 
-- 天气数据：[和风天气](https://www.qweather.com/)
-- 农历 API：[接口盒子](https://www.apihz.cn/)
-- IP 定位：[ip9.com.cn](http://ip9.com.cn/)
-- gzip 解压：[miniz](https://github.com/richgel999/miniz)（richgel999）
-- 中文字体渲染：[U8g2_for_Adafruit_GFX](https://github.com/olikraus/U8g2_for_Adafruit_GFX)（olikraus）
-- 时间同步：[NTPClient](https://github.com/arduino-libraries/NTPClient)（Fabrice Weinberg）
+```bash
+openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | sed 's/../0x&, /g'
+```
 
----
+**输出样例**
 
-## 📄 License
+```
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+...
+```
 
-本项目采用 [MIT License](LICENSE) 开源协议，Copyright (c) 2026 gaocq。
-
-### 第三方组件
-
-本项目使用了以下第三方开源组件，各自遵循其原始协议：
-
-- **[miniz](https://github.com/richgel999/miniz)** —— MIT License
-  Copyright 2013-2014 RAD Game Tools and Valve Software
-  Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+**自己手动加 `{ }` 和换行。**
 
 ---
 
-## ⭐ 如果你觉得这个项目有用，欢迎点个 Star
+## 方法三：用和风官方 JWT 工具
 
----
+访问 [https://jwt.qweather.com](https://jwt.qweather.com)
+
+- 页面**直接显示 32 字节十六进制格式**的私钥（如 `c1b5c77b...`）
+- 每两个字符加 `0x` 和 `,` 就是数组格式
+
+**手抄太累，还是用方法一或二。**
+
+### 接口盒子 API
+
+1. 注册 [接口盒子](https://www.apihz.cn/)
+2. 获取：
+   - `LUNAR_API_ID`（开发者 ID）
+   - `LUNAR_API_KEY`（API Key）
+
+## 快速开始
+
+1. **克隆 / 下载**本仓库到 Arduino sketch 目录。
+
+2. 修改 **用户配置区**：
+
+   ```cpp
+   // 和风天气配置
+   const char* QWEATHER_USER_ID       = "填写和风开发者ID";
+   const char* QWEATHER_PROJECT_ID    = "填写和风项目ID";
+   const char* QWEATHER_CREDENTIAL_ID = "填写和风凭据ID";
+   const char* QWEATHER_API_HOST      = "填写和风APIhost";
+   
+   static const uint8_t ED25519_PRIVATE_KEY[32] = {
+     // 填写生成的私钥（32 字节十六进制数组）
+   };
+   
+   // 接口盒子配置
+   const char* LUNAR_API_ID  = "填写接口盒子开发者ID";
+   const char* LUNAR_API_KEY = "填写接口盒子APIkey";
+   ```
+
+3. **编译烧录**，首次启动会连接已保存的 WiFi，未保存时进入配网流程。
+
+4. **按键操作**：
+
+   - 时钟页：左/右切换页面，上进入菜单
+   - 菜单页：上/下选择，右确认，左返回
+   - 长按左/右：开关整点报时
+
+## 架构概览
+
+```
+setup()
+  ├─ OLED / u8g2 初始化
+  ├─ prefs 初始化
+  ├─ tinfl 解压器预分配（堆上 10KB）
+  ├─ WiFi 连接
+  ├─ NTP 同步
+  └─ 启动动画
+
+loop()
+  ├─ 按键扫描
+  ├─ WiFi 重连
+  ├─ NTP 定时同步（5 分钟）
+  ├─ 天气更新（10 分钟）
+  │   ├─ ip9 定位
+  │   ├─ 和风 current（JWT + Ed25519 鉴权）
+  │   ├─ gzip 解压（tinfl 复用）
+  │   ├─ 和风 daily 7 天预报
+  │   └─ gzip 解压
+  └─ 页面绘制
+```
+
+## 关键技术点
+
+### 1. JWT 鉴权（和风天气 API）
+
+和风天气要求 API 请求携带 **Ed25519 签名的 JWT**。本项目的实现：
+
+- 用 Ed25519 私钥对 JWT header + payload 签名
+- 生成 base64url 编码的完整 JWT
+- 通过 `Authorization: Bearer <jwt>` 头传给 API
+
+### 2. gzip 流式解压
+
+和风 API 返回 gzip 压缩数据，为在 ESP32 有限内存下解压：
+
+- 使用 `tinfl_decompressor_alloc()` 在**堆上**分配解压器（约 10KB）
+- **全局复用同一个解压器**，避免反复 malloc/free 造成堆碎片
+- 加 `TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF` 标志，输出到连续大 buffer
+
+### 3. HTTPS 连接复用
+
+两次 HTTPS 请求（current + daily）复用同一个 `WiFiClientSecure`，避免 TLS 上下文重复分配造成的 `code=-1` 错误。
+
+## 目录结构
+
+```
+sketch_sep25a/
+├── sketch_sep25a.ino   # 主程序
+├── miniz.h             # miniz 头文件
+├── miniz.c             # miniz 实现
+├── edsign.h            # Ed25519 签名接口
+├── edsign.c
+├── ed25519.c
+├── c25519.c
+├── f25519.c
+├── fprime.c
+├── morph25519.c
+└── sha512.c
+```
+
+## 常见问题
+
+**Q: 编译报 `undefined reference to tinfl_decompress_mem_to_mem`？**
+
+A: 确保 `miniz.h` / `miniz.c` 在 sketch 目录下，且未被 Arduino 库管理器里的其他 miniz 覆盖。
+
+**Q: 天气显示"无数据"？**
+
+A: 检查 WiFi 是否连接、和风 API 凭据是否正确、私钥是否匹配控制台的公钥。
+
+**Q: 预报接口报 `code=-1`？**
+
+A: 堆内存不足导致 TLS 握手失败。确保 `g_secureClient` 是全局复用的，且两次 HTTPS 请求之间有 `delay(100)`。
+
+**Q: JWT 生成失败？**
+
+A: 检查 NTP 是否同步成功（JWT 依赖系统时间），以及 `ED25519_PRIVATE_KEY` 是否正确填写。
+
+**Q: 农历不显示？**
+
+A: 检查接口盒子的 `LUNAR_API_ID` 和 `LUNAR_API_KEY` 是否配置正确，以及 API 额度是否用完。
+
+## 致谢
+
+- **Ed25519 签名**：本项目使用的 Ed25519 签名实现来自
+  [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519)，
+  用于生成和风天气 API 的 JWT 签名。感谢原作者的开源贡献。
+- **miniz**：gzip/deflate 压缩库，作者 Rich Geldreich。
+- **和风天气**：提供实时天气和 7 天预报 API。
+- **apihz.cn**：提供农历 API。
+
+## 第三方组件许可
+
+- **Ed25519 签名**：来自 [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519)，
+  该仓库**未声明许可证**。本项目仅以引用方式使用其源码，
+  不改变原项目的许可状态，使用者需自行评估合规性。
+- **miniz**：MIT / Public Domain
+- **Adafruit GFX / SSD1306**：BSD
+- **ArduinoJson**：MIT
+- **NTPClient**：MIT
+- **U8g2_for_Adafruit_GFX**：MIT
+- **和风天气 API**：受和风服务条款约束
+- **apihz.cn 农历 API**：受 apihz 服务条款约束
+
+## 注意事项
+
+- 本项目中的 API 凭据（和风私钥、API Key 等）**请勿提交到公开仓库**。
+  建议将配置抽到独立的 `secrets.h` 文件并加入 `.gitignore`。
+- 和风天气的免费额度有限，建议合理设置更新间隔（默认 10 分钟）。
+- 首次启动若未配置 WiFi，会进入配网模式，通过按键输入 SSID 和密码。
+
+## License
+
+本项目代码采用 MIT License 发布（详见 [LICENSE](LICENSE) 文件）。
