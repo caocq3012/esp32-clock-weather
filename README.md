@@ -187,6 +187,12 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 - **[miniz](https://github.com/richgel999/miniz)** —— MIT License
   Copyright 2013-2014 RAD Game Tools and Valve Software
   Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+- **Adafruit GFX / SSD1306**：BSD
+- **ArduinoJson**：MIT
+- **NTPClient**：MIT
+- **U8g2_for_Adafruit_GFX**：MIT
+- **和风天气 API**：受和风服务条款约束
+- **apihz.cn 农历 API**：受 apihz 服务条款约束
 
 ---
 
