@@ -1093,7 +1093,7 @@ void setup() {
     delay(80);
   }
 
-  drawBootScreen(100, "启动完成");
+  drawBootScreen(100, "正在同步天气");
   delay(400);
 
   Serial.println("=== Setup Done ===");
