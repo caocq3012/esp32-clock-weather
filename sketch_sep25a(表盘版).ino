@@ -140,6 +140,7 @@ void startHourBeep(int count) {
 }
 void beepTask() {
   unsigned long now = millis();
+  
   if (shortBeepActive) {
     if (digitalRead(BEEP_PIN) == HIGH && now - beepStart >= 100) { digitalWrite(BEEP_PIN, LOW); shortBeepActive = false; }
     return;
@@ -588,13 +589,6 @@ void drawClockPage() {
   struct tm tmBuf;
   gmtime_r(&utcEpoch, &tmBuf);
 
-  year  = tmBuf.tm_year + 1900;
-  mon   = tmBuf.tm_mon + 1;
-  mday  = tmBuf.tm_mday;
-  hourNow = timeClient.getHours();
-  minNow  = timeClient.getMinutes();
-  secNow  = timeClient.getSeconds();
-
   // ★ 农历缓存：每天只请求一次 API
   if (cachedLunarYear != year || cachedLunarMon != mon || cachedLunarDay != mday || cachedLunar.length() == 0) {
     String apiResult = getLunarFromAPI(year, mon, mday);
@@ -919,6 +913,19 @@ void loop() {
   }
 
   unsigned long now = millis();
+  // 每轮都更新时间变量，避免熄屏时 hourNow 不更新导致无法自动亮屏
+  if (timeSynced) {
+    hourNow = timeClient.getHours();
+    minNow  = timeClient.getMinutes();
+    secNow  = timeClient.getSeconds();
+
+    time_t utcEpoch = timeClient.getEpochTime();
+    struct tm tmBuf;
+    gmtime_r(&utcEpoch, &tmBuf);
+    year = tmBuf.tm_year + 1900;
+    mon  = tmBuf.tm_mon + 1;
+    mday = tmBuf.tm_mday;
+  }
   uint8_t key = keyScanLoop();
   if (key != 0) { handleKey(key); screenActiveTimer = millis(); screenOn = true; }
   beepTask();
