@@ -13,11 +13,13 @@
 #include <WiFiClientSecure.h>
 #include <U8g2_for_Adafruit_GFX.h>
 #include "miniz.h"
+#include <esp_system.h>
+
 
 extern "C" {
   #include "edsign.h"
 }
-enum PageState { PAGE_CLOCK, PAGE_WEATHER, PAGE_MENU, PAGE_WIFI_SCAN, PAGE_WIFI_PASS, PAGE_WIFI_SETUP };
+enum PageState { PAGE_CLOCK, PAGE_WEATHER, PAGE_MENU, PAGE_WIFI_SCAN, PAGE_WIFI_PASS, PAGE_WIFI_SETUP, PAGE_NIGHT_TIMEOUT };
 PageState currentPage = PAGE_CLOCK;
 //==================== 全局 tinfl 解压器（复用，避免反复 malloc/free）====================
 static tinfl_decompressor* g_decomp = nullptr;
@@ -61,7 +63,6 @@ const char* NTP_SERVER = "ntp.aliyun.com";
 const long GMT_OFFSET = 8 * 3600;
 const unsigned long WEATHER_INTERVAL = 600000UL;
 const unsigned long NTP_INTERVAL = 300000UL;
-const unsigned long NIGHT_SCREEN_TIMEOUT = 10000UL;
 const unsigned long DAY_SCREEN_TIMEOUT = 60000UL;
 const uint8_t WIFI_SCAN_MAX = 20;
 #define WIFI_PASS_MAXLEN 64
@@ -69,6 +70,19 @@ const unsigned long WIFI_RECONNECT_INTERVAL = 10000UL;
 const uint8_t XOR_KEY = 0x5A;
 int startLine = 0;
 const int maxShow = 4;
+
+//==================== 夜间熄屏时间设置 =====================
+const unsigned long NIGHT_TIMEOUT_OPTIONS[] = {
+  15000UL, 30000UL, 60000UL, 120000UL, 600000UL, 0UL
+};
+const char* NIGHT_TIMEOUT_LABELS[] = {
+  "15秒", "30秒", "1分钟", "2分钟", "10分钟", "永不熄屏"
+};
+const int NIGHT_TIMEOUT_COUNT = 6;
+
+int nightTimeoutIdx = 1;
+unsigned long nightScreenTimeout = 30000UL;
+bool nightTimeoutSelected = false;
 
 //===============================================================
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -117,15 +131,15 @@ unsigned long beepStart = 0;
 int beepCnt = 0, beepTotal = 0;
 const unsigned long BEEP_ON = 300, BEEP_OFF = 200;
 bool shortBeepActive = false;
-bool showWifiTip = false;
-unsigned long wifiTipStart = 0;
-const unsigned long WIFI_TIP_DURATION = 800UL;
 
 String cachedLunar = "";
 int cachedLunarYear = -1;
 int cachedLunarMon = -1;
 int cachedLunarDay = -1;
 
+void reboot() {
+    ESP.restart();
+}
 //==================== Base64url ====================
 String base64urlEncode(const uint8_t *data, size_t len) {
   static const char* b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -156,7 +170,7 @@ String base64urlEncode(const String& str) {
   return base64urlEncode((const uint8_t*)str.c_str(), str.length());
 }
 
-//==================== JWT（typ 已移除）====================
+//==================== JWT ====================
 String buildJWT() {
   if (!timeSynced) {
     Serial.println("NTP未同步，跳过JWT生成");
@@ -211,6 +225,19 @@ String loadWiFiPass() {
   if (len <= 0) return "";
   xorEncDec(buf, XOR_KEY);
   return String(buf);
+}
+
+//==================== 夜间熄屏时间加载/保存 ====================
+void loadNightTimeout() {
+  nightTimeoutIdx = prefs.getInt("night_to_idx", 1);
+  if (nightTimeoutIdx < 0 || nightTimeoutIdx >= NIGHT_TIMEOUT_COUNT) nightTimeoutIdx = 1;
+  nightScreenTimeout = NIGHT_TIMEOUT_OPTIONS[nightTimeoutIdx];
+  Serial.printf("夜间熄屏时间: %s (%lu ms)\n",
+                NIGHT_TIMEOUT_LABELS[nightTimeoutIdx], nightScreenTimeout);
+}
+void saveNightTimeout() {
+  prefs.putInt("night_to_idx", nightTimeoutIdx);
+  nightScreenTimeout = NIGHT_TIMEOUT_OPTIONS[nightTimeoutIdx];
 }
 
 //==================== 蜂鸣器 ====================
@@ -318,7 +345,7 @@ void drawWeatherIcon(int x, int y, String cond) {
   }
 }
 
-//==================== 手动 gunzip（写静态 buffer，绕开 String 堆分配）====================
+//==================== gunzip ====================
 bool httpGetGunzip(HTTPClient& http, char* outBuf, size_t outSize, size_t* outLen) {
   WiFiClient* stream = http.getStreamPtr();
   if (!stream) return false;
@@ -363,7 +390,7 @@ bool httpGetGunzip(HTTPClient& http, char* outBuf, size_t outSize, size_t* outLe
     Serial.println(">>> decomp 分配失败");
     return false;
   }
-  tinfl_init(decomp);   // 每次复用前重置状态
+  tinfl_init(decomp);
 
   size_t written = 0;
   size_t inPos = 0;
@@ -371,7 +398,7 @@ bool httpGetGunzip(HTTPClient& http, char* outBuf, size_t outSize, size_t* outLe
   unsigned long tDec = millis();
 
   while (status > TINFL_STATUS_DONE && millis() - tDec < 8000) {
-    mz_uint32 flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;   // ← 关键
+    mz_uint32 flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
     if (inPos < deflateLen) flags |= TINFL_FLAG_HAS_MORE_INPUT;
 
     size_t inAvail  = deflateLen - inPos;
@@ -402,8 +429,6 @@ bool httpGetGunzip(HTTPClient& http, char* outBuf, size_t outSize, size_t* outLe
     }
   }
 
-
-
   if (written == 0) {
     Serial.println(">>> written == 0");
     return false;
@@ -413,6 +438,7 @@ bool httpGetGunzip(HTTPClient& http, char* outBuf, size_t outSize, size_t* outLe
   *outLen = written;
   return true;
 }
+
 //==================== 农历 API ====================
 String getLunarFromAPI(int y, int m, int d) {
   if (WiFi.status() != WL_CONNECTED) return "";
@@ -484,14 +510,8 @@ bool getCityAndWeather() {
 
   String url = String("https://") + QWEATHER_API_HOST + "/weather/v1/current/" + latStr + "/" + lngStr;
 
-  // 删掉这两行
-  // WiFiClientSecure secureClient;
-  // secureClient.setInsecure();
-
-  // 改成
   g_secureClient.setInsecure();
   http.begin(g_secureClient, url);
-
 
   String jwt = buildJWT();
   if (jwt.length() == 0) { Serial.println("JWT生成失败"); http.end(); return false; }
@@ -541,7 +561,6 @@ bool getCityAndWeather() {
   prefs.putString("weatherText", String(weatherInfo));
   prefs.putFloat("temp", temp);
   prefs.putInt("hum", humidity);
-  // ← 加这两行，让堆整理一下
   delay(100);
   yield();
   if (!getForecast(latStr, lngStr)) Serial.println("预报更新失败");
@@ -564,11 +583,6 @@ bool getForecast(String lat, String lng) {
 
   String url = String("https://") + QWEATHER_API_HOST + "/weather/v1/daily/" + lat + "/" + lng + "?numdays=7";
 
-  // 删掉这两行
-  // WiFiClientSecure secureClient;
-  // secureClient.setInsecure();
-
-  // 改成
   HTTPClient http;
   http.setTimeout(8000);
   g_secureClient.setInsecure();
@@ -667,7 +681,8 @@ void scanWiFi() {
   WiFi.scanDelete();
 }
 
-bool connectWiFi(String ssid, String pass) {
+// 连接 WiFi。rebootAfter=true 时连上后显示 "WiFi OK, Restarting..." 然后重启。
+bool connectWiFi(String ssid, String pass, bool rebootAfter = false) {
   prefs.putString("ssid", ssid);
   saveWiFiCfg(ssid, pass);
   WiFi.disconnect();
@@ -675,9 +690,18 @@ bool connectWiFi(String ssid, String pass) {
   unsigned long start = millis();
   const unsigned long WIFI_TIMEOUT = 8000;
   while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT) beepTask();
-  showWifiTip = true;
-  wifiTipStart = millis();
-  return (WiFi.status() == WL_CONNECTED);
+
+  bool ok = (WiFi.status() == WL_CONNECTED);
+  if (ok && rebootAfter) {
+    Serial.println("WiFi OK, Restarting...");
+    display.clearDisplay();
+    drawCN(0, 20, "WiFi OK");
+    drawCN(0, 40, "Restarting...");
+    display.display();
+    delay(1000);
+    reboot();
+  }
+  return ok;
 }
 
 //==================== 页面绘制 ====================
@@ -703,7 +727,8 @@ void drawClockPage() {
   const char *weekStr[] = {"星期日","星期一","星期二","星期三","星期四","星期五","星期六"};
   String weekStrStr = weekStr[tmBuf.tm_wday];
 
-  drawWifiIcon(WiFi.RSSI());
+  int rssi = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : -100;
+  drawWifiIcon(rssi);
 
   char timeBuf[12];
   snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", hourNow, minNow, secNow);
@@ -727,7 +752,8 @@ void drawClockPage() {
 
 void drawWeatherPage() {
   display.clearDisplay();
-  drawWifiIcon(WiFi.RSSI());
+  int rssi = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : -100;
+  drawWifiIcon(rssi);
   drawWeatherIcon(44, 2, String(weatherInfo));
 
   String line1 = String(cityName) + " " + String(weatherInfo) + " " + String(temp, 1) + "℃ " + String(humidity) + "%";
@@ -753,8 +779,9 @@ void drawWeatherPage() {
 void drawMenu() {
   display.clearDisplay();
   drawCN(0, 14, "====菜单====");
-  drawCN(0, 32, menuSelection == 0 ? "> WiFi设置" : "  WiFi设置");
-  drawCN(0, 50, menuSelection == 1 ? "> 返回" : "  返回");
+  drawCN(0, 30, menuSelection == 0 ? "> WiFi设置" : "  WiFi设置");
+  drawCN(0, 44, menuSelection == 1 ? "> 夜间熄屏时间" : "  夜间熄屏时间");
+  drawCN(0, 58, menuSelection == 2 ? "> 返回" : "  返回");
   display.display();
 }
 
@@ -809,7 +836,8 @@ void drawTipScreen(String msg) {
 void drawWifiSetupPage() {
   display.clearDisplay();
   drawCN(0, 12, "WiFi设置");
-  drawWifiIcon(WiFi.RSSI());
+  int rssi = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : -100;
+  drawWifiIcon(rssi);
 
   String savedSSID = prefs.getString("ssid", "");
   String savedPass = loadWiFiPass();
@@ -831,6 +859,42 @@ void drawWifiSetupPage() {
   display.display();
 }
 
+//==================== 夜间熄屏时间页面 ====================
+void drawNightTimeoutPage() {
+  display.clearDisplay();
+  drawCN(0, 12, "夜间熄屏时间");
+
+  const int maxShowN = 4;
+  int startIdx = 0;
+  if (nightTimeoutIdx >= maxShowN) startIdx = nightTimeoutIdx - maxShowN + 1;
+  if (startIdx > NIGHT_TIMEOUT_COUNT - maxShowN) startIdx = NIGHT_TIMEOUT_COUNT - maxShowN;
+  if (startIdx < 0) startIdx = 0;
+
+  for (int i = 0; i < maxShowN; i++) {
+    int idx = startIdx + i;
+    if (idx >= NIGHT_TIMEOUT_COUNT) break;
+
+    bool isCurrent = (idx == nightTimeoutIdx);
+    int yBase = 20 + 10 * i;
+
+    if (isCurrent && nightTimeoutSelected) {
+      display.fillRect(0, yBase - 1, SCREEN_WIDTH, 11, WHITE);
+      u8g2.setFont(u8g2_font_wqy12_t_gb2312);
+      u8g2.setForegroundColor(SSD1306_BLACK);
+      u8g2.setBackgroundColor(SSD1306_WHITE);
+      u8g2.setCursor(0, yBase + 9);
+      u8g2.print("> ");
+      u8g2.print(NIGHT_TIMEOUT_LABELS[idx]);
+      u8g2.setForegroundColor(SSD1306_WHITE);
+      u8g2.setBackgroundColor(SSD1306_BLACK);
+    } else {
+      String line = (isCurrent ? "> " : "  ") + String(NIGHT_TIMEOUT_LABELS[idx]);
+      drawCN(0, yBase + 9, line);
+    }
+  }
+
+  display.display();
+}
 //==================== 按键检测 ====================
 bool readKey(uint8_t pin) { return digitalRead(pin) == LOW; }
 uint8_t keyScanLoop() {
@@ -871,11 +935,12 @@ void handleKey(uint8_t k) {
     }
   } else if (currentPage == PAGE_MENU) {
     if (!longPress) {
-      if (key == KEY_UP) menuSelection = 0;
-      if (key == KEY_DOWN) menuSelection = 1;
+      if (key == KEY_UP) { menuSelection--; if (menuSelection < 0) menuSelection = 2; }
+      if (key == KEY_DOWN) { menuSelection++; if (menuSelection > 2) menuSelection = 0; }
       if (key == KEY_RIGHT) {
         if (menuSelection == 0) { wifiSetupSelection = 0; setPage(PAGE_WIFI_SETUP); }
-        else if (menuSelection == 1) setPage(PAGE_CLOCK);
+        else if (menuSelection == 1) { nightTimeoutSelected = false; setPage(PAGE_NIGHT_TIMEOUT); }
+        else if (menuSelection == 2) setPage(PAGE_CLOCK);
       }
       if (key == KEY_LEFT) setPage(PAGE_CLOCK);
     }
@@ -907,8 +972,7 @@ void handleKey(uint8_t k) {
     }
     if (longPress) {
       wifiManualConfig = true;
-      bool ok = connectWiFi(selectedSSID, inputPASS);
-      if (ok) { setPage(PAGE_CLOCK); lastNtpUpdate = 0; lastWeatherUpdate = 0; }
+      connectWiFi(selectedSSID, inputPASS, true);   // 手动连接：连上后显示 WiFi OK 并重启
     }
   } else if (currentPage == PAGE_WIFI_SETUP) {
     if (!longPress) {
@@ -920,8 +984,7 @@ void handleKey(uint8_t k) {
           String savedPass = loadWiFiPass();
           if (savedSSID.length() > 0 && savedPass.length() > 0) {
             wifiManualConfig = true;
-            bool ok = connectWiFi(savedSSID, savedPass);
-            if (ok) { setPage(PAGE_CLOCK); lastNtpUpdate = 0; lastWeatherUpdate = 0; }
+            connectWiFi(savedSSID, savedPass, true);   // 手动连接：连上后显示 WiFi OK 并重启
           } else {
             scanWiFi(); wifiSelectIdx = 0; startLine = 0;
             setPage(PAGE_WIFI_SCAN);
@@ -933,6 +996,34 @@ void handleKey(uint8_t k) {
         } else if (wifiSetupSelection == 2) setPage(PAGE_CLOCK);
       }
       if (key == KEY_LEFT) setPage(PAGE_MENU);
+    }
+  } else if (currentPage == PAGE_NIGHT_TIMEOUT) {
+    if (!longPress) {
+      if (key == KEY_UP) {
+        nightTimeoutIdx--;
+        if (nightTimeoutIdx < 0) nightTimeoutIdx = NIGHT_TIMEOUT_COUNT - 1;
+        if (nightTimeoutSelected) saveNightTimeout();
+      }
+      if (key == KEY_DOWN) {
+        nightTimeoutIdx++;
+        if (nightTimeoutIdx >= NIGHT_TIMEOUT_COUNT) nightTimeoutIdx = 0;
+        if (nightTimeoutSelected) saveNightTimeout();
+      }
+      if (key == KEY_RIGHT) {
+        if (!nightTimeoutSelected) {
+          nightTimeoutSelected = true;
+          saveNightTimeout();
+        } else {
+          nightTimeoutSelected = false;
+        }
+      }
+      if (key == KEY_LEFT) {
+        if (nightTimeoutSelected) {
+          nightTimeoutSelected = false;
+        } else {
+          setPage(PAGE_MENU);
+        }
+      }
     }
   }
 }
@@ -967,7 +1058,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.println("=== ESP32 Startup ===");
-  Serial.println("Version: 第二十九版(JWT+静态buffer)");
+  Serial.println("Version: 第三十二版(夜间熄屏+手动WiFi连接重启)");
 
   delay(500);
 
@@ -999,9 +1090,9 @@ void setup() {
   } else {
     Serial.println("✅ decomp 预分配成功");
   }
-  
 
   loadWeatherCache();
+  loadNightTimeout();
   String savedSSID = prefs.getString("ssid", "");
   String savedPass = loadWiFiPass();
 
@@ -1043,6 +1134,7 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED) {
       Serial.printf("WiFi 已连接，IP=%s\n", WiFi.localIP().toString().c_str());
       drawBootScreen(75, "WiFi 已连接");
+      delay(300);
     } else {
       Serial.println("WiFi 连接超时");
       drawBootScreen(75, "WiFi 超时，离线模式");
@@ -1106,12 +1198,11 @@ void loop() {
   static unsigned long lastHeartbeat = 0;
   if (millis() - lastHeartbeat > 30000) {
     lastHeartbeat = millis();
-    Serial.printf("[heartbeat] Running... WiFi=%d temp=%.1f page=%d screenOn=%d\n",
-                  WiFi.status() == WL_CONNECTED ? 1 : 0, temp, currentPage, screenOn);
+    Serial.printf("[heartbeat] Running... WiFi=%d temp=%.1f page=%d screenOn=%d nightTO=%lu\n",
+                  WiFi.status() == WL_CONNECTED ? 1 : 0, temp, currentPage, screenOn, nightScreenTimeout);
   }
 
   unsigned long now = millis();
-  // 每轮都更新时间变量，避免熄屏时 hourNow 不更新导致无法自动亮屏
   if (timeSynced) {
     hourNow = timeClient.getHours();
     minNow  = timeClient.getMinutes();
@@ -1138,17 +1229,13 @@ void loop() {
   }
   if (WiFi.status() == WL_CONNECTED) wifiManualConfig = false;
 
-  if (showWifiTip) {
-    if (millis() - wifiTipStart < WIFI_TIP_DURATION) {
-      drawTipScreen(WiFi.status() == WL_CONNECTED ? "WiFi OK" : "WiFi FAIL");
-    } else showWifiTip = false;
-  }
-
   bool isMainPage = (currentPage == PAGE_CLOCK || currentPage == PAGE_WEATHER);
   bool isNight = timeSynced && (hourNow >= 21 || hourNow < 7);
 
   if (isMainPage && isNight) {
-    if (millis() - screenActiveTimer > NIGHT_SCREEN_TIMEOUT) screenOn = false;
+    if (nightScreenTimeout > 0 && millis() - screenActiveTimer > nightScreenTimeout) {
+      screenOn = false;
+    }
   } else {
     screenOn = true;
     screenActiveTimer = millis();
@@ -1169,16 +1256,17 @@ void loop() {
   if (hourBellEnable && currentMin == 0 && lastMin != 0) startHourBeep(timeClient.getHours());
   lastMin = currentMin;
 
-  if (screenOn && !showWifiTip) {
+  if (screenOn) {
     display.ssd1306_command(SSD1306_DISPLAYON);
     delay(1);
     switch (currentPage) {
-      case PAGE_CLOCK:      drawClockPage();     break;
-      case PAGE_WEATHER:    drawWeatherPage();   break;
-      case PAGE_MENU:       drawMenu();          break;
-      case PAGE_WIFI_SCAN:  drawWifiScanList();  break;
-      case PAGE_WIFI_PASS:  drawWifiPassInput(); break;
-      case PAGE_WIFI_SETUP: drawWifiSetupPage(); break;
+      case PAGE_CLOCK:         drawClockPage();        break;
+      case PAGE_WEATHER:       drawWeatherPage();      break;
+      case PAGE_MENU:          drawMenu();             break;
+      case PAGE_WIFI_SCAN:     drawWifiScanList();     break;
+      case PAGE_WIFI_PASS:     drawWifiPassInput();    break;
+      case PAGE_WIFI_SETUP:    drawWifiSetupPage();    break;
+      case PAGE_NIGHT_TIMEOUT: drawNightTimeoutPage(); break;
     }
   } else if (!screenOn) display.ssd1306_command(SSD1306_DISPLAYOFF);
 }
