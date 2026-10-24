@@ -214,6 +214,8 @@ openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | s
    - 菜单页：上/下选择，右确认，左返回
    - 长按左/右：开关整点报时
 
+5. **⚠️注** 编译时需要在**工具--Partition Scheme**中选择**Huge APP (3MB No OTA/1MB SPIFFS)**否则无法正常编译并上传！！！意
+
 ## 架构概览
 
 ```
