@@ -1,5 +1,17 @@
 # esp32_clock_and_weather JWT无表盘版特殊说明
 
+---
+
+[简体中文](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT.md)
+
+[English](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT_EN.md)
+
+[日本語](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT_JP.md)
+
+---
+
+
+
 基于 ESP32 的桌面智能时钟，支持 OLED 显示、实时天气、7 天预报、农历、NTP 校时、WiFi 配网、整点报时等功能。
 
 ## 功能特性
