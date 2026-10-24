@@ -6,6 +6,12 @@ ESP32 128×64 OLED I2C 智能桌面天气时钟。支持中文显示、农历、
 
 [JWT无表盘版特殊说明](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT.md)
 
+[English](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_EN.md)
+
+[简体中文](https://github.com/caocq3012/esp32-clock-weather/blob/main/README.md)
+
+[日本語](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JP.md)
+
 ## 📌 项目简介
 
 基于 ESP32 开发板的 OLED 桌面时钟，适配 SSD1306 128×64 I2C OLED 屏幕。
