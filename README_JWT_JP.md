@@ -214,7 +214,7 @@ openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | s
    - メニューページ：上/下で選択、右で確定、左で戻る
    - 左/右長押し：時報のオン/オフ
 
-5. **⚠️注** コンパイル時に**ツール -- Partition Scheme**で**Huge APP (3MB No OTA/1MB SPIFFS)**を選択する必要があります。そうしないと正常にコンパイル・アップロードできません！！！注意
+5. **⚠注意** コンパイル時に**ツール -- Partition Scheme**で**Huge APP (3MB No OTA/1MB SPIFFS)**を選択する必要があります。そうしないと正常にコンパイル・アップロードできません！！
 
 ## アーキテクチャ概要
 

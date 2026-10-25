@@ -214,7 +214,7 @@ Visit [https://jwt.qweather.com](https://jwt.qweather.com)
    - Menu page: Up/Down selects, Right confirms, Left returns
    - Long press Left/Right: Toggle the hourly chime
 
-5. **⚠️Note** When compiling, you need to select **Huge APP (3MB No OTA/1MB SPIFFS)** in **Tools -- Partition Scheme**, otherwise it cannot compile and upload properly!!! Note
+5. **⚠️Note** When compiling, you need to select **Huge APP (3MB No OTA/1MB SPIFFS)** in **Tools -- Partition Scheme**, otherwise it cannot compile and upload properly!!!
 
 ## Architecture Overview
 
