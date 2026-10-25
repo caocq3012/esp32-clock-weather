@@ -14,11 +14,29 @@
 #include <U8g2_for_Adafruit_GFX.h>
 #include "miniz.h"
 #include <esp_system.h>
-
-
 extern "C" {
   #include "edsign.h"
 }
+// 检查是否存在 key.h 文件
+#if __has_include("key.h")
+    #include "key.h"
+#else
+  //==================== 用户配置区 =====================
+  //和风天气注册api网站
+  //https://console.qweather.com/
+  const char* QWEATHER_USER_ID       = "填写和风开发者ID";
+  const char* QWEATHER_PROJECT_ID    = "填写和风项目ID";
+  const char* QWEATHER_CREDENTIAL_ID = "填写和风凭据ID";
+  const char* QWEATHER_API_HOST      = "填写和风APIhost";
+
+  static const uint8_t ED25519_PRIVATE_KEY[32] = {
+    //填写生成的私钥  
+  };
+  //接口盒子注册api网站
+  //https://www.apihz.cn/
+  const char* LUNAR_API_ID  = "填写接口盒子开发者ID";
+  const char* LUNAR_API_KEY = "填写接口盒子APIkey";
+#endif
 enum PageState { PAGE_CLOCK, PAGE_WEATHER, PAGE_MENU, PAGE_WIFI_SCAN, PAGE_WIFI_PASS, PAGE_WIFI_SETUP, PAGE_NIGHT_TIMEOUT };
 PageState currentPage = PAGE_CLOCK;
 //==================== 全局 tinfl 解压器（复用，避免反复 malloc/free）====================
@@ -31,21 +49,6 @@ static tinfl_decompressor* getDecomp() {
   }
   return g_decomp;
 }
-//==================== 用户配置区 =====================
-//和风天气注册api网站
-//https://console.qweather.com/
-const char* QWEATHER_USER_ID       = "填写和风开发者ID";
-const char* QWEATHER_PROJECT_ID    = "填写和风项目ID";
-const char* QWEATHER_CREDENTIAL_ID = "填写和风凭据ID";
-const char* QWEATHER_API_HOST      = "填写和风APIhost";
-
-static const uint8_t ED25519_PRIVATE_KEY[32] = {
-//填写生成的私钥  
-};
-//接口盒子注册api网站
-//https://www.apihz.cn/
-const char* LUNAR_API_ID  = "填写接口盒子开发者ID";
-const char* LUNAR_API_KEY = "填写接口盒子APIkey";
 
 //===================== 硬件配置 =====================
 #define SCREEN_WIDTH 128
