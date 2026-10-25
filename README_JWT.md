@@ -10,8 +10,6 @@
 
 ---
 
-
-
 基于 ESP32 的桌面智能时钟，支持 OLED 显示、实时天气、7 天预报、农历、NTP 校时、WiFi 配网、整点报时等功能。
 
 ## 功能特性
@@ -226,7 +224,7 @@ openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | s
    - 菜单页：上/下选择，右确认，左返回
    - 长按左/右：开关整点报时
 
-5. **⚠️注** 编译时需要在**工具--Partition Scheme**中选择**Huge APP (3MB No OTA/1MB SPIFFS)**否则无法正常编译并上传！！！意
+5. **⚠注意** 编译时需要在**工具--Partition Scheme**中选择**Huge APP (3MB No OTA/1MB SPIFFS)**否则无法正常编译并上传！！
 
 ## 架构概览
 
