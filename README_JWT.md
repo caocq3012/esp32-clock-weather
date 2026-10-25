@@ -63,7 +63,7 @@
 **本地文件**（与源代码同级，可以直接打包下载）：
 
 - `miniz.h` / `miniz.c` — 用于 gzip 解压
-- `edsign.h` / `edsign.c` 等 — Ed25519 签名
+- `ed25519.h` / `fe.c` / `ge.c` / `sc.c` / `sha512.c` / `keypair.c` / `sign.c` / `verify.c` 等 — Ed25519 签名（orlp/ed25519，zlib 许可证）
 
 ## API 申请
 
@@ -256,9 +256,9 @@ loop()
 
 和风天气要求 API 请求携带 **Ed25519 签名的 JWT**。本项目的实现：
 
-- 用 Ed25519 私钥对 JWT header + payload 签名
-- 生成 base64url 编码的完整 JWT
-- 通过 `Authorization: Bearer <jwt>` 头传给 API
+- 用 32 字节 seed 通过 `ed25519_create_keypair()` 生成公钥（32B）和私钥（64B）
+- 用 `ed25519_sign()` 对 `header.payload` 签名
+- base64url 编码后拼成完整 JWT，通过 `Authorization: Bearer <jwt>` 头传给 API
 
 ### 2. gzip 流式解压
 
@@ -279,14 +279,16 @@ sketch_sep25a/
 ├── sketch_sep25a.ino   # 主程序
 ├── miniz.h             # miniz 头文件
 ├── miniz.c             # miniz 实现
-├── edsign.h            # Ed25519 签名接口
-├── edsign.c
-├── ed25519.c
-├── c25519.c
-├── f25519.c
-├── fprime.c
-├── morph25519.c
-└── sha512.c
+├── ed25519.h           # Ed25519 接口（orlp/ed25519）
+├── fixedint.h          # 定长整数类型
+├── fe.c / fe.h         # 域运算
+├── ge.c / ge.h         # 群运算
+├── sc.c / sc.h         # 标量运算
+├── sha512.c / sha512.h # SHA-512
+├── keypair.c           # 密钥生成
+├── sign.c              # 签名
+├── verify.c            # 验签
+└── precomp_data.h      # 预计算表
 ```
 
 ## 常见问题
@@ -294,6 +296,10 @@ sketch_sep25a/
 **Q: 编译报 `undefined reference to tinfl_decompress_mem_to_mem`？**
 
 A: 确保 `miniz.h` / `miniz.c` 在 sketch 目录下，且未被 Arduino 库管理器里的其他 miniz 覆盖。
+
+**Q: 编译报 `'edsign_sec_to_pub' was not declared in this scope`？**
+
+A: 本项目已改用 `orlp/ed25519`，不再使用 `edsign` 系列函数。请确认 `ed25519.h` 及 `fe.c` / `ge.c` / `sc.c` / `sha512.c` / `keypair.c` / `sign.c` / `verify.c` 均在 sketch 目录下，且代码中调用的是 `ed25519_create_keypair()` 和 `ed25519_sign()`。
 
 **Q: 天气显示"无数据"？**
 
@@ -313,18 +319,16 @@ A: 检查接口盒子的 `LUNAR_API_ID` 和 `LUNAR_API_KEY` 是否配置正确�
 
 ## 致谢
 
-- **Ed25519 签名**：本项目使用的 Ed25519 签名实现来自
-  [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519)，
-  用于生成和风天气 API 的 JWT 签名。感谢原作者的开源贡献。
+- **Ed25519 签名**：本项目使用 [orlp/ed25519](https://github.com/orlp/ed25519)
+  （zlib 许可证，Copyright (c) 2015 Orson Peters）实现 JWT 签名。感谢原作者的开源贡献。
 - **miniz**：gzip/deflate 压缩库，作者 Rich Geldreich。
 - **和风天气**：提供实时天气和 7 天预报 API。
 - **apihz.cn**：提供农历 API。
 
 ## 第三方组件许可
 
-- **Ed25519 签名**：来自 [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519)，
-  该仓库**未声明许可证**。本项目仅以引用方式使用其源码，
-  不改变原项目的许可状态，使用者需自行评估合规性。
+- **Ed25519 签名**：[orlp/ed25519](https://github.com/orlp/ed25519)，zlib 许可证。
+  使用时需保留其版权声明与许可证全文，修改过的源码需标注"已修改"。
 - **miniz**：MIT / Public Domain
 - **Adafruit GFX / SSD1306**：BSD
 - **ArduinoJson**：MIT
@@ -332,6 +336,8 @@ A: 检查接口盒子的 `LUNAR_API_ID` 和 `LUNAR_API_KEY` 是否配置正确�
 - **U8g2_for_Adafruit_GFX**：MIT
 - **和风天气 API**：受和风服务条款约束
 - **apihz.cn 农历 API**：受 apihz 服务条款约束
+
+第三方依赖的完整许可证声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 注意事项
 

@@ -1,19 +1,29 @@
 # esp32_clock_and_weather JWT No-Dial Version Special Notes
 
-An ESP32-based desktop smart clock that supports OLED display, real-time weather, 7-day forecast, lunar calendar, NTP time synchronization, WiFi provisioning, hourly chime, and other functions.
+---
+
+[简体中文](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT.md)
+
+[English](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT_EN.md)
+
+[日本語](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT_JP.md)
+
+---
+
+An ESP32-based desktop smart clock supporting OLED display, real-time weather, 7-day forecast, lunar calendar, NTP time synchronization, WiFi provisioning, hourly chime, and more.
 
 ## Features
 
-- ⏰ **Clock display**: Large-font time + date + weekday + lunar calendar
-- 🌤 **Real-time weather**: Automatic IP geolocation, displays city, weather, temperature, and humidity
-- 📅 **7-day forecast**: QWeather daily API, icons + dates
-- 🌙 **Lunar calendar display**: Obtains lunar dates via the apihz.cn API
-- 📡 **NTP time synchronization**: Automatically syncs every 5 minutes
-- 🔌 **WiFi provisioning**: Supports scanning / manual entry of SSID and password
-- 🔔 **Hourly chime**: Buzzer rings on the hour (can be toggled)
-- 🌙 **Night screen-off**: Automatically turns off the screen after 10 seconds from 21:00 to 07:00 to save power; press the down key to turn the screen on for 10 seconds; stays on during the day
-- 💾 **Offline cache**: Weather data is cached locally and can still be displayed when offline
-- 🔐**High security**: Uses JWT authentication, which is more secure than API key
+- ⏰ **Clock Display**: Large-font time + date + day of week + lunar calendar
+- 🌤 **Real-time Weather**: Automatic IP-based location, displaying city, weather, temperature, and humidity
+- 📅 **7-Day Forecast**: QWeather daily API, icons + dates
+- 🌙 **Lunar Calendar Display**: Lunar date retrieved via apihz.cn API
+- 📡 **NTP Time Sync**: Automatic synchronization every 5 minutes
+- 🔌 **WiFi Provisioning**: Supports scanning / manual entry of SSID and password
+- 🔔 **Hourly Chime**: Buzzer rings on the hour (can be toggled)
+- 🌙 **Night Screen Off**: Auto screen-off 10 seconds after 21:00~07:00 to save power; press the down key to light up the screen for 10 seconds; stays on during the day
+- 💾 **Offline Cache**: Weather data cached locally, still displayable when offline
+- 🔐 **High Security**: Uses JWT authentication, more secure than API key
 
 ## Hardware Requirements
 
@@ -21,8 +31,8 @@ An ESP32-based desktop smart clock that supports OLED display, real-time weather
 | --------- | ----------------------------------------- |
 | MCU       | ESP32 (ESP32-DevKitC or compatible board) |
 | Display   | SSD1306 OLED 128×64 (I2C, address 0x3C)   |
-| Buzzer    | Passive/active buzzer                     |
-| Buttons   | 4 tactile buttons (up/down/left/right)    |
+| Buzzer    | Passive/Active buzzer                     |
+| Buttons   | 4 tactile buttons (Up/Down/Left/Right)    |
 
 ### Pin Connections
 
@@ -45,31 +55,31 @@ Install in the Arduino IDE Library Manager:
 - `ArduinoJson` (7.x)
 - `NTPClient`
 - `U8g2_for_Adafruit_GFX`
-- `WiFi` (built into ESP32)
-- `HTTPClient` (built into ESP32)
-- `WiFiClientSecure` (built into ESP32)
-- `Preferences` (built into ESP32)
+- `WiFi` (bundled with ESP32)
+- `HTTPClient` (bundled with ESP32)
+- `WiFiClientSecure` (bundled with ESP32)
+- `Preferences` (bundled with ESP32)
 
-**Local files** (in the same directory as the source code; can be packaged and downloaded directly):
+**Local files** (at the same level as the source code, can be downloaded directly as a package):
 
-- `miniz.h` / `miniz.c` — used for gzip decompression
-- `edsign.h` / `edsign.c`, etc. — Ed25519 signatures
+- `miniz.h` / `miniz.c` — for gzip decompression
+- `ed25519.h` / `fe.c` / `ge.c` / `sc.c` / `sha512.c` / `keypair.c` / `sign.c` / `verify.c` etc. — Ed25519 signatures (orlp/ed25519, zlib license)
 
 ## API Application
 
 ### QWeather API
 
-1. Register at the [QWeather Console](https://console.qweather.com/)
+1. Register at [QWeather Console](https://console.qweather.com/)
 2. Create a project and obtain:
-   - `QWEATHER_USER_ID` (developer ID)
+   - `QWEATHER_USER_ID` (Developer ID)
    - `QWEATHER_API_HOST` (API Host, in the form `xxx.re.qweatherapi.com`)
-   - Obtain them in the top-right avatar -- Settings
+   - Obtain from the top-right avatar -- Settings
 
-### Generate an Ed25519 Key Pair
+### Generate Ed25519 Key Pair
 
-QWeather uses the Ed25519 algorithm for JWT signing, so a key pair must be generated.
+QWeather uses the Ed25519 algorithm for JWT signing, so a key pair needs to be generated.
 
-**Method 1: Use OpenSSL (recommended)**
+**Method 1: Using OpenSSL (Recommended)**
 
 ```bash
 openssl genpkey -algorithm ED25519 -out ed25519-private.pem && openssl pkey -pubout -in ed25519-private.pem > ed25519-public.pem
@@ -77,29 +87,29 @@ openssl genpkey -algorithm ED25519 -out ed25519-private.pem && openssl pkey -pub
 
 Two files are generated:
 
-- `ed25519-private.pem` — private key (keep it yourself; do not disclose it)
-- `ed25519-public.pem` — public key (upload to the QWeather console)
+- `ed25519-private.pem` — Private key (keep it safe, do not leak)
+- `ed25519-public.pem` — Public key (upload to QWeather Console)
 
-**Method 2: Use the official QWeather JWT tool**
+**Method 2: Using the Official QWeather JWT Tool**
 
-Visit [https://jwt.qweather.com](https://jwt.qweather.com). The page automatically generates a key pair, and you can directly copy the private key and public key.
+Visit [https://jwt.qweather.com](https://jwt.qweather.com); the page will automatically generate a key pair, and you can directly copy the private and public keys.
 
-**Method 3: Use the official QWeather sample code**
+**Method 3: Using the Official QWeather Sample Code**
 
-The official QWeather documentation provides JWT generation sample code in Java, Python, Node.js, and other languages. You can refer to the cryptography library for the corresponding language to generate an Ed25519 key pair.
+The official QWeather documentation provides JWT generation sample code in Java, Python, Node.js, and other languages. You can refer to the cryptography library of the corresponding language to generate an Ed25519 key pair.
 
-### Upload the Public Key and Obtain Credentials
+### Upload Public Key and Obtain Credentials
 
-1. Log in to the QWeather console and go to **Project Management**
+1. Log in to the QWeather Console and go to **Project Management**
 2. Select a project (create one if none exists) and click **"Add Credential"**
 3. Enter any credential name
-4. For the authentication method, select **"JSON Web Token"**
+4. Select **"JSON Web Token"** as the authentication method
 5. Copy the entire contents of `ed25519-public.pem` (including `-----BEGIN PUBLIC KEY-----` and `-----END PUBLIC KEY-----`) and paste it into the public key input box
-6. After saving, record the **Credential ID** and **Project ID**; they will be **useful later**
+6. After saving, record the **Credential ID** and **Project ID** — these will be **useful later**
 
-### Convert the Private Key to a Hexadecimal Array
+### Convert Private Key to Hexadecimal Array
 
-#### Method 1: Python Script (recommended)
+#### Method 1: Python Script (Recommended)
 
 **Prerequisite**: Install the `cryptography` library
 
@@ -135,7 +145,7 @@ print("};")
 python convert.py
 ```
 
-**Example output**:
+**Example Output**:
 
 ```
 static const uint8_t ED25519_PRIVATE_KEY[32] = {
@@ -146,7 +156,7 @@ static const uint8_t ED25519_PRIVATE_KEY[32] = {
 };
 ```
 
-**Copy and paste it directly into the code.**
+**Copy and paste directly into the code.**
 
 ---
 
@@ -156,7 +166,7 @@ static const uint8_t ED25519_PRIVATE_KEY[32] = {
 openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | sed 's/../0x&, /g'
 ```
 
-**Example output**
+**Sample Output**
 
 ```
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -168,53 +178,53 @@ openssl pkey -in ed25519-private.pem -outform DER | tail -c 32 | xxd -p -c 8 | s
 
 ---
 
-## Method 3: Use the Official QWeather JWT Tool
+## Method 3: Using the Official QWeather JWT Tool
 
 Visit [https://jwt.qweather.com](https://jwt.qweather.com)
 
 - The page **directly displays the private key in 32-byte hexadecimal format** (e.g., `c1b5c77b...`)
-- Add `0x` and `,` every two characters to get the array format
+- Add `0x` and `,` before each pair of characters to form the array format
 
-**Copying by hand is too tedious, so use Method 1 or 2.**
+**Copying by hand is too tedious — use Method 1 or 2 instead.**
 
-### Interface Box API
+### Jiekou Hezi API
 
-1. Register at [Interface Box](https://www.apihz.cn/)
+1. Register at [Jiekou Hezi](https://www.apihz.cn/)
 2. Obtain:
-   - `LUNAR_API_ID` (developer ID)
+   - `LUNAR_API_ID` (Developer ID)
    - `LUNAR_API_KEY` (API Key)
 
 ## Quick Start
 
-1. **Clone / download** this repository into the Arduino sketch directory.
+1. **Clone / Download** this repository to your Arduino sketch directory.
 
-2. Modify the **user configuration section**:
+2. Modify the **User Configuration Section**:
 
    ```cpp
    // QWeather configuration
-   const char* QWEATHER_USER_ID       = "Fill in the QWeather developer ID";
-   const char* QWEATHER_PROJECT_ID    = "Fill in the QWeather project ID";
-   const char* QWEATHER_CREDENTIAL_ID = "Fill in the QWeather credential ID";
-   const char* QWEATHER_API_HOST      = "Fill in the QWeather API host";
+   const char* QWEATHER_USER_ID       = "Enter QWeather developer ID";
+   const char* QWEATHER_PROJECT_ID    = "Enter QWeather project ID";
+   const char* QWEATHER_CREDENTIAL_ID = "Enter QWeather credential ID";
+   const char* QWEATHER_API_HOST      = "Enter QWeather API host";
    
    static const uint8_t ED25519_PRIVATE_KEY[32] = {
-     // Fill in the generated private key (32-byte hexadecimal array)
+     // Enter the generated private key (32-byte hexadecimal array)
    };
    
-   // Interface Box configuration
-   const char* LUNAR_API_ID  = "Fill in the Interface Box developer ID";
-   const char* LUNAR_API_KEY = "Fill in the Interface Box API key";
+   // Jiekou Hezi configuration
+   const char* LUNAR_API_ID  = "Enter Jiekou Hezi developer ID";
+   const char* LUNAR_API_KEY = "Enter Jiekou Hezi API key";
    ```
 
-3. **Compile and flash**. On first startup, it will connect to the saved WiFi; if none is saved, it will enter the provisioning process.
+3. **Compile and flash**. On first startup, it will connect to the saved WiFi; if none is saved, it enters the provisioning flow.
 
-4. **Button operations**:
+4. **Button Operations**:
 
-   - Clock page: Left/Right switches pages, Up enters the menu
-   - Menu page: Up/Down selects, Right confirms, Left returns
-   - Long press Left/Right: Toggle the hourly chime
+   - Clock page: Left/Right to switch pages, Up to enter the menu
+   - Menu page: Up/Down to select, Right to confirm, Left to return
+   - Long press Left/Right: Toggle hourly chime
 
-5. **⚠️Note** When compiling, you need to select **Huge APP (3MB No OTA/1MB SPIFFS)** in **Tools -- Partition Scheme**, otherwise it cannot compile and upload properly!!!
+5. **⚠Note** When compiling, you need to select **Huge APP (3MB No OTA/1MB SPIFFS)** in **Tools -- Partition Scheme**, otherwise it cannot compile and upload properly!!
 
 ## Architecture Overview
 
@@ -222,22 +232,22 @@ Visit [https://jwt.qweather.com](https://jwt.qweather.com)
 setup()
   ├─ OLED / u8g2 initialization
   ├─ prefs initialization
-  ├─ tinfl decompressor preallocation (10KB on the heap)
+  ├─ tinfl decompressor pre-allocation (10KB on heap)
   ├─ WiFi connection
-  ├─ NTP synchronization
-  └─ Startup animation
+  ├─ NTP sync
+  └─ Boot animation
 
 loop()
   ├─ Button scanning
   ├─ WiFi reconnection
-  ├─ NTP scheduled synchronization (5 minutes)
+  ├─ NTP periodic sync (5 minutes)
   ├─ Weather update (10 minutes)
-  │   ├─ ip9 geolocation
+  │   ├─ ip9 location
   │   ├─ QWeather current (JWT + Ed25519 authentication)
-  │   ├─ gzip decompression (tinfl reuse)
+  │   ├─ gzip decompression (tinfl reused)
   │   ├─ QWeather daily 7-day forecast
   │   └─ gzip decompression
-  └─ Page drawing
+  └─ Page rendering
 ```
 
 ## Key Technical Points
@@ -246,88 +256,94 @@ loop()
 
 QWeather requires API requests to carry an **Ed25519-signed JWT**. This project's implementation:
 
-- Uses the Ed25519 private key to sign the JWT header + payload
-- Generates a complete JWT encoded in base64url
-- Passes it to the API via the `Authorization: Bearer <jwt>` header
+- Uses a 32-byte seed to generate the public key (32B) and private key (64B) via `ed25519_create_keypair()`
+- Uses `ed25519_sign()` to sign `header.payload`
+- Base64url encodes and assembles the complete JWT, passing it to the API via the `Authorization: Bearer <jwt>` header
 
 ### 2. gzip Streaming Decompression
 
-The QWeather API returns gzip-compressed data. To decompress it under the ESP32's limited memory:
+The QWeather API returns gzip-compressed data. To decompress within the limited memory of the ESP32:
 
 - Uses `tinfl_decompressor_alloc()` to allocate the decompressor **on the heap** (about 10KB)
 - **Globally reuses the same decompressor** to avoid repeated malloc/free causing heap fragmentation
-- Adds the `TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF` flag to output to a large contiguous buffer
+- Adds the `TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF` flag to output to a contiguous large buffer
 
 ### 3. HTTPS Connection Reuse
 
-The two HTTPS requests (current + daily) reuse the same `WiFiClientSecure` to avoid `code=-1` errors caused by repeated allocation of TLS contexts.
+Two HTTPS requests (current + daily) reuse the same `WiFiClientSecure` to avoid the `code=-1` error caused by repeated TLS context allocation.
 
 ## Directory Structure
 
 ```
 sketch_sep25a/
 ├── sketch_sep25a.ino   # Main program
-├── miniz.h             # miniz header file
+├── miniz.h             # miniz header
 ├── miniz.c             # miniz implementation
-├── edsign.h            # Ed25519 signing interface
-├── edsign.c
-├── ed25519.c
-├── c25519.c
-├── f25519.c
-├── fprime.c
-├── morph25519.c
-└── sha512.c
+├── ed25519.h           # Ed25519 interface (orlp/ed25519)
+├── fixedint.h          # Fixed-length integer types
+├── fe.c / fe.h         # Field arithmetic
+├── ge.c / ge.h         # Group arithmetic
+├── sc.c / sc.h         # Scalar arithmetic
+├── sha512.c / sha512.h # SHA-512
+├── keypair.c           # Key generation
+├── sign.c              # Signing
+├── verify.c            # Verification
+└── precomp_data.h      # Precomputed tables
 ```
 
 ## FAQ
 
-**Q: Compilation reports `undefined reference to tinfl_decompress_mem_to_mem`?**
+**Q: Compilation error `undefined reference to tinfl_decompress_mem_to_mem`?**
 
-A: Make sure `miniz.h` / `miniz.c` are in the sketch directory and are not overridden by other miniz copies in the Arduino Library Manager.
+A: Make sure `miniz.h` / `miniz.c` are in the sketch directory and are not overridden by other miniz libraries in the Arduino Library Manager.
 
-**Q: Weather shows "No data"?**
+**Q: Compilation error `'edsign_sec_to_pub' was not declared in this scope`?**
+
+A: This project has switched to `orlp/ed25519` and no longer uses the `edsign` series of functions. Please confirm that `ed25519.h` and `fe.c` / `ge.c` / `sc.c` / `sha512.c` / `keypair.c` / `sign.c` / `verify.c` are all in the sketch directory, and that the code calls `ed25519_create_keypair()` and `ed25519_sign()`.
+
+**Q: Weather shows "No Data"?**
 
 A: Check whether WiFi is connected, whether the QWeather API credentials are correct, and whether the private key matches the public key in the console.
 
-**Q: The forecast API reports `code=-1`?**
+**Q: Forecast API returns `code=-1`?**
 
-A: Insufficient heap memory causes the TLS handshake to fail. Make sure `g_secureClient` is globally reused and that there is a `delay(100)` between the two HTTPS requests.
+A: Insufficient heap memory causes TLS handshake failure. Make sure `g_secureClient` is globally reused, and there is a `delay(100)` between the two HTTPS requests.
 
 **Q: JWT generation fails?**
 
-A: Check whether NTP synchronization succeeded (JWT depends on the system time) and whether `ED25519_PRIVATE_KEY` is filled in correctly.
+A: Check whether NTP synchronization is successful (JWT depends on system time), and whether `ED25519_PRIVATE_KEY` is correctly filled in.
 
-**Q: The lunar calendar is not displayed?**
+**Q: Lunar calendar not displayed?**
 
-A: Check whether the Interface Box `LUNAR_API_ID` and `LUNAR_API_KEY` are configured correctly, and whether the API quota has been used up.
+A: Check whether Jiekou Hezi's `LUNAR_API_ID` and `LUNAR_API_KEY` are correctly configured, and whether the API quota has been exhausted.
 
 ## Acknowledgments
 
-- **Ed25519 signatures**: The Ed25519 signature implementation used in this project comes from
-  [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519),
-  and is used to generate JWT signatures for the QWeather API. Thanks to the original author for the open-source contribution.
+- **Ed25519 Signatures**: This project uses [orlp/ed25519](https://github.com/orlp/ed25519)
+  (zlib license, Copyright (c) 2015 Orson Peters) to implement JWT signing. Thanks to the original author for the open-source contribution.
 - **miniz**: gzip/deflate compression library, by Rich Geldreich.
 - **QWeather**: Provides real-time weather and 7-day forecast APIs.
 - **apihz.cn**: Provides the lunar calendar API.
 
 ## Third-Party Component Licenses
 
-- **Ed25519 signatures**: From [iot-tor/esp32-ed25519](https://github.com/iot-tor/esp32-ed25519),
-  which **does not declare a license**. This project uses its source code only by reference,
-  does not change the licensing status of the original project, and users must assess compliance themselves.
+- **Ed25519 Signatures**: [orlp/ed25519](https://github.com/orlp/ed25519), zlib license.
+  Its copyright notice and full license text must be retained when used; modified source code must be marked as "modified".
 - **miniz**: MIT / Public Domain
 - **Adafruit GFX / SSD1306**: BSD
 - **ArduinoJson**: MIT
 - **NTPClient**: MIT
 - **U8g2_for_Adafruit_GFX**: MIT
-- **QWeather API**: Subject to the QWeather Terms of Service
-- **apihz.cn lunar calendar API**: Subject to the apihz Terms of Service
+- **QWeather API**: Subject to QWeather's Terms of Service
+- **apihz.cn Lunar Calendar API**: Subject to apihz's Terms of Service
+
+The complete license statements for third-party dependencies can be found in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Notes
 
-- API credentials in this project (QWeather private key, API Key, etc.) **must not be committed to public repositories**.
+- The API credentials in this project (QWeather private key, API Key, etc.) **must not be committed to public repositories**.
   It is recommended to extract the configuration into a separate `secrets.h` file and add it to `.gitignore`.
-- QWeather's free quota is limited, so it is recommended to set a reasonable update interval (default 10 minutes).
+- QWeather's free quota is limited; it is recommended to set a reasonable update interval (default 10 minutes).
 - On first startup, if WiFi is not configured, it will enter provisioning mode, where you enter the SSID and password via buttons.
 
 ## License
