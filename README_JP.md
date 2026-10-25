@@ -173,6 +173,10 @@ const char* LUNAR_API_KEY = "apihzの開発者API-keyを入力";
 
 ---
 
+- 📁 **`text/sketch_oct24a`** —— おまけ：純粋なハードウェアテストプログラム（OLEDとボタンが正常に動作するかのテスト用）
+
+---
+
 ## 🙏 謝辞
 
 - 天気データ：[QWeather](https://www.qweather.com/)

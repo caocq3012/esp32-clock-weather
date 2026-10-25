@@ -173,6 +173,10 @@ After downloading the code, open the `.ino` file and fill in your WiFi, QWeather
 
 ---
 
+- 📁 **`text/sketch_oct24a`** —— Bonus: Pure hardware test program (used to test if the OLED and buttons are working properly)
+
+---
+
 ## 🙏 Acknowledgements
 
 - Weather Data: [QWeather](https://www.qweather.com/)

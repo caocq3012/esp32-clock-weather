@@ -179,6 +179,10 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 ---
 
+附赠：`text/sketch_oct24a` —— 纯硬件测试程序（用于测试 OLED 和按键是否正常工作）。  
+
+---
+
 ## 🙏 致谢
 
 - 天气数据：[和风天气](https://www.qweather.com/)
