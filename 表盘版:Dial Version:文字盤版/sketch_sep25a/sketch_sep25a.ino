@@ -14,13 +14,30 @@
 #include <U8g2_for_Adafruit_GFX.h>
 #include "miniz.h"
 
-//==================== 用户配置区 =====================
-const char* QWEATHER_API_KEY = "填入和风API key";
-const char* QWEATHER_API_HOST = "填入和风API host";
+// 检查是否存在 key.h 文件
+#if __has_include("key.h")
+    #include "key.h"
+#else
+  //==================== 用户配置区 =====================
+  //=======================================================
+  // 👇👇👇 如果你是下载本项目的用户，请直接在这里修改你的配置 👇👇👇
+  // （如果你看到了 key.h 文件，请删除它，或者把配置填进 key.h 里）
+  //=======================================================
+  //和风天气注册api网站
+  //https://console.qweather.com/
+  const char* QWEATHER_USER_ID       = "填写和风开发者ID";
+  const char* QWEATHER_PROJECT_ID    = "填写和风项目ID";
+  const char* QWEATHER_CREDENTIAL_ID = "填写和风凭据ID";
+  const char* QWEATHER_API_HOST      = "填写和风APIhost";
 
-// ★ 接口盒子（https://www.apihz.cn/）注册后填这里
-const char* LUNAR_API_ID  = "填入接口盒子开发者ID";
-const char* LUNAR_API_KEY = "填入接口盒子API key";
+  static const uint8_t ED25519_PRIVATE_KEY[32] = {
+    //填写生成的私钥  
+  };
+  //接口盒子注册api网站
+  //https://www.apihz.cn/
+  const char* LUNAR_API_ID  = "填写接口盒子开发者ID";
+  const char* LUNAR_API_KEY = "填写接口盒子APIkey";
+#endif
 
 //===================== 硬件配置 =====================
 #define SCREEN_WIDTH 128
