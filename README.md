@@ -165,7 +165,7 @@ const char* LUNAR_API_KEY = "填写接口盒子开发者API-key";
 
 - **无表盘 JWT 版**：使用 Ed25519 算法生成 JWT 访问和风天气，安全性大幅提升，但配置较复杂。
 
-  - ⚠️ **注意**：JWT 版本涉及较多的底层加密依赖文件，下载后请务必阅_JTW无表盘版特殊说明](https://githu.Tcm./caocq3012/esp32-clock-weather/blob/main`README_JWT.dm)）进行配置。
+  - ⚠️ **注意**：JWT 版本涉及较多的底层加密依赖文件，下载后请务必参考[JWT无表盘版特殊说明](https://github.com/caocq3012/esp32-clock-weather/blob/main/README_JWT.md)进行配置。
 
 **🔑 快速配置指南（针对普通版）：**  
 下载代码后，打开 `.ino` 文件，直接在开头的 **「用户配置区」** 填入你的 WiFi、和风天气和接口盒子的信息即可直接编译运行。如果你有更高的安全需求，也可以在同级目录下新建 `key.h` 文件填入配置，程序会自动优先读取 `key.h`。
