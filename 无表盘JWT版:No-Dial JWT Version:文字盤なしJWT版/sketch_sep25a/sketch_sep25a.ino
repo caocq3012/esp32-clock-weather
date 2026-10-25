@@ -15,7 +15,7 @@
 #include "miniz.h"
 #include <esp_system.h>
 extern "C" {
-  #include "edsign.h"
+  #include "ed25519.h"
 }
 // 检查是否存在 key.h 文件
 #if __has_include("key.h")
@@ -194,12 +194,15 @@ String buildJWT() {
   String payloadB64 = base64urlEncode(payloadJson);
   String message = headerB64 + "." + payloadB64;
 
+  // 由 32 字节 seed 生成公钥(32B) + 私钥(64B)
   uint8_t pubkey[32];
-  edsign_sec_to_pub(pubkey, ED25519_PRIVATE_KEY);
+  uint8_t private_key_64[64];
+  ed25519_create_keypair(pubkey, private_key_64, ED25519_PRIVATE_KEY);
 
+  // 用 orlp/ed25519 的 API 签名
   uint8_t signature[64];
-  edsign_sign(signature, pubkey, ED25519_PRIVATE_KEY,
-              (const uint8_t*)message.c_str(), message.length());
+  ed25519_sign(signature, (const uint8_t*)message.c_str(), message.length(),
+               pubkey, private_key_64);
 
   String sigB64 = base64urlEncode(signature, 64);
   String jwt = message + "." + sigB64;
